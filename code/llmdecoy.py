@@ -2,10 +2,9 @@ import openai
 
 
 def identify_and_generate_similar(input_string: str, decoy_amount: int):
-    # Replace 'your-api-key' with your actual OpenAI API key
+    # need to have api key, idk if i want to go this route
     openai.api_key = "your-api-key"
 
-    # Step 1: Generalized prompt to generate decoys based on any input
     identification_prompt = f"""
         You will be provided with a SQL query. Your task is to:
         1. Identify the value being inserted into the database from the query.
