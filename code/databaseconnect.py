@@ -38,39 +38,96 @@ def create_database(host, port, user, password, new_db_name):
         print(f"Error while creating database: {e}")
 
 
+def display_database(cursor):
+    cursor.execute("SELECT datname FROM pg_database WHERE datistemplate = false;")
+    db_list = cursor.fetchall()
+    print("Databases:")
+    for db in db_list:
+        print(f" - {db[0]}")
+
+    cursor.execute(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
+    )
+    tables = cursor.fetchall()
+    if tables:
+        print("Tables in the current database:")
+        for table in tables:
+            print(f" - {table[0]}")
+    else:
+        print("No tables in the current database.")
+
+
+def user_sql_terminal(cursor, connection):
+    while True:
+        try:
+            # Need to have user input be accepted for different things not just exit, right now nothing works except select
+            user_query = input("Enter SQL query (or 'exit' to return to menu): ")
+            if user_query.lower() == "exit":
+                # code not leaving
+                cursor.close()
+                connection.close()
+                break
+            # selects all
+            cursor.execute(user_query)
+            if user_query.strip().lower().startswith("select"):
+                results = cursor.fetchall()
+                for row in results:
+                    print(row)
+            else:
+                print("Query executed successfully.")
+        except Exception as e:
+            print(f"Error executing query: {e}")
+
+
 def main():
-    # Define pre set PostgreSQL credentials
+    # pre set PostgreSQL credentials for test
     host = "localhost"
     port = "5432"
     user = "postgres"
     password = "your_password"
-    target_db = "my_new_database"
+    target_db = "my_new_database23"
 
-    # connect to the target database
-    connection = connect_to_database(host, port, user, password, target_db)
+    test_true = True
+    connection = None
+    try:
+        while test_true:
+            # connect to the target database
+            connection = connect_to_database(host, port, user, password, target_db)
 
-    if connection is None:
-        # If no connection (database might not exist), create a new database
-        print(f"Database '{target_db}' not found, attempting to create it.")
-        create_database(host, port, user, password, target_db)
+            if connection is None:
+                # If no connection (database might not exist), create a new database
+                print(f"Database '{target_db}' not found, would you like to create it?")
+                # Add button here for yes or no
+                user_ans = input("y/n?")
+                if user_ans.lower() == "y":
+                    # tries connecting to the new
+                    create_database(host, port, user, password, target_db)
+                else:
+                    print("The database was not been created")
 
-        # tries connecting to the new
-        connection = connect_to_database(host, port, user, password, target_db)
+            if connection:
+                # does database stuff if connected
+                cursor = connection.cursor()
 
-    if connection:
-        # does database stuff if connected
-        cursor = connection.cursor()
-
-        # Create a sample table if one does not exists
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS public.test_table (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(100)
-            );
-        """)
-        print("Table 'test_table' created successfully.")
+                # Create a sample table if one does not exists
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS public.test_table (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(100)
+                    );
+                """)
+                print("Table 'test_table' created successfully.")
+                print("You can now run SQL queries on this database.")
+                user_sql_terminal(cursor, connection)
 
         # Close the connection
+    except KeyboardInterrupt:
+        print("\nCtrl + C pressed. Closing the database connection and exiting.")
+    finally:
+        # Close the connection if it exists
+        if connection:
+            connection.close()
+            print("Database connection closed.")
         cursor.close()
         connection.close()
 
