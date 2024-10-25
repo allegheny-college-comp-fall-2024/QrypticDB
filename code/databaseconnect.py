@@ -57,24 +57,19 @@ def display_database(cursor):
         print("No tables in the current database.")
 
 
-def user_sql_terminal(cursor, connection):
-    while True:
+def user_sql_terminal(cursor, connection) -> bool:
+    run = True
+    while run:
         try:
             # Need to have user input be accepted for different things not just exit, right now nothing works except select
-            user_query = input("Enter SQL query (or 'exit' to return to menu): ")
-            if user_query.lower() == "exit":
-                # code not leaving
+            user_query = input("Enter SQL query (or type 'exit' or '\\q' to quit):")
+            if user_query.strip().lower() in ("exit", "\\q"):
                 cursor.close()
                 connection.close()
-                break
-            # selects all
+                run = False
+                return False
             cursor.execute(user_query)
-            if user_query.strip().lower().startswith("select"):
-                results = cursor.fetchall()
-                for row in results:
-                    print(row)
-            else:
-                print("Query executed successfully.")
+            connection.commit()
         except Exception as e:
             print(f"Error executing query: {e}")
 
@@ -118,7 +113,9 @@ def main():
                 """)
                 print("Table 'test_table' created successfully.")
                 print("You can now run SQL queries on this database.")
-                user_sql_terminal(cursor, connection)
+                stop = user_sql_terminal(cursor, connection)
+                if stop == False:
+                    break
 
         # Close the connection
     except KeyboardInterrupt:
