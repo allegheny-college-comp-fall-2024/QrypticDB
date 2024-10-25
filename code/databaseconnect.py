@@ -61,7 +61,9 @@ def user_sql_terminal(cursor, connection) -> bool:
     run = True
     while run:
         try:
-            # Need to have user input be accepted for different things not just exit, right now nothing works except select
+            # Next is to pass the data in to the llm to generate decoy data to simulate superposition
+            # When the user enters the correct password, db should be decerypted and their queries should use
+            # lazy eval to get the correct data
             user_query = input("Enter SQL query (or type 'exit' or '\\q' to quit):")
             if user_query.strip().lower() in ("exit", "\\q"):
                 cursor.close()
@@ -116,6 +118,7 @@ def main():
                 stop = user_sql_terminal(cursor, connection)
                 if stop == False:
                     break
+                # INSERT INTO name (brand, model, year) VALUES ('Ford', 'Mustang', 1964')
 
         # Close the connection
     except KeyboardInterrupt:
