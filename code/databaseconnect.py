@@ -61,23 +61,36 @@ def user_sql_terminal(cursor, connection) -> bool:
     run = True
     while run:
         try:
-            # Next is to pass the data in to the llm to generate decoy data to simulate superposition
-            # When the user enters the correct password, db should be decerypted and their queries should use
-            # lazy eval to get the correct data
-            user_query = input("Enter SQL query (or type 'exit' or '\\q' to quit):")
+            # Prompt for SQL query input
+            user_query = input("Enter SQL query (or type 'exit' or '\\q' to quit): ")
             if user_query.strip().lower() in ("exit", "\\q"):
                 cursor.close()
                 connection.close()
                 run = False
                 return False
-            cursor.execute(user_query)
-            connection.commit()
+
+            # If the query is a SELECT statement
+            elif user_query.strip().lower().startswith("select"):
+                cursor.execute(user_query)
+                rows = cursor.fetchall()
+                if rows:
+                    for row in rows:
+                        print(row)
+                else:
+                    print("No data found.")
+
+            # For non-SELECT queries
+            else:
+                cursor.execute(user_query)
+                connection.commit()
+                print("Query executed successfully.")
+
         except Exception as e:
             print(f"Error executing query: {e}")
 
 
 def main():
-    # pre set PostgreSQL credentials for test
+    # Preset PostgreSQL credentials for testing
     host = "localhost"
     port = "5432"
     user = "postgres"
@@ -88,48 +101,47 @@ def main():
     connection = None
     try:
         while test_true:
-            # connect to the target database
+            # Connect to the target database
             connection = connect_to_database(host, port, user, password, target_db)
 
             if connection is None:
-                # If no connection (database might not exist), create a new database
-                print(f"Database '{target_db}' not found, would you like to create it?")
-                # Add button here for yes or no
-                user_ans = input("y/n?")
+                # If no connection, prompt to create a new database
+                print(f"Database '{target_db}' not found. Would you like to create it?")
+                user_ans = input("y/n? ")
                 if user_ans.lower() == "y":
-                    # tries connecting to the new
                     create_database(host, port, user, password, target_db)
                 else:
-                    print("The database was not been created")
+                    print("The database was not created.")
+                    break  # Exit if user chooses not to create the database
 
             if connection:
-                # does database stuff if connected
+                # Connection successful, proceed with database operations
                 cursor = connection.cursor()
 
-                # Create a sample table if one does not exists
+                # Create a sample table if one does not exist
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS public.test_table (
                         id SERIAL PRIMARY KEY,
                         name VARCHAR(100)
                     );
                 """)
+                connection.commit()  # Ensure changes are saved
                 print("Table 'test_table' created successfully.")
                 print("You can now run SQL queries on this database.")
-                stop = user_sql_terminal(cursor, connection)
-                if stop == False:
-                    break
-                # INSERT INTO name (brand, model, year) VALUES ('Ford', 'Mustang', 1964')
 
-        # Close the connection
+                # Start the user SQL terminal
+                stop = user_sql_terminal(cursor, connection)
+                if not stop:
+                    break
+
     except KeyboardInterrupt:
         print("\nCtrl + C pressed. Closing the database connection and exiting.")
     finally:
-        # Close the connection if it exists
+        # Close the connection and cursor if they exist
         if connection:
+            cursor.close()
             connection.close()
             print("Database connection closed.")
-        cursor.close()
-        connection.close()
 
 
 if __name__ == "__main__":
