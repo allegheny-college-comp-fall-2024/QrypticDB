@@ -5,12 +5,19 @@ import string
 
 
 def query_parse(query: str):
-    # Query parse for insert statement
-    query = " ".join(query.strip().split())  # Clean up whitespace
+    # Ensure the input is a string
+    if not isinstance(query, str):
+        raise TypeError("Expected a string for 'query', but got a different data type.")
+
+    # Clean up whitespace in the query
+    query = " ".join(query.strip().split())
+
+    # Extract the table name
     table_pattern = r"INSERT\s+INTO\s+(\w+)"
     table_match = re.search(table_pattern, query)
     table_name = table_match.group(1) if table_match else None
 
+    # Extract column names
     column_pattern = r"INSERT\s+INTO\s+\w+\s*\((.*?)\)"
     column_match = re.search(column_pattern, query)
     columns = []
@@ -19,6 +26,7 @@ def query_parse(query: str):
     else:
         raise ValueError("Error: No column names provided in the query.")
 
+    # Extract values
     values_pattern = r"VALUES\s*(\(.*?\))"
     values_matches = re.finditer(values_pattern, query)
     all_values = []
@@ -44,6 +52,7 @@ def query_parse(query: str):
         values = [v.strip().strip("'\"") for v in values]
         all_values.append(values)
 
+    # Create DataFrame with extracted values
     df = pd.DataFrame(all_values, columns=columns)
     return {
         "table": table_name,
@@ -129,18 +138,60 @@ def generate_decoys_from_query(parsed_data, num_decoys=10):
     return decoy_data
 
 
-# Example usage
-query = """
-INSERT INTO users (name, age, job) 
-VALUES ('Alice', '544-3244', 'teacher')
-"""
+# Function to concatenate real and decoy values into a single entry
+def concatenate_with_decoys(real_value, decoys):
+    # Combine real value with decoys, separated by commas
+    return f"{real_value}," + ",".join(decoys)
 
-# Parse the query
-parsed_data = query_parse(query)
 
-# Generate decoys based on the parsed data
-decoy_results = generate_decoys_from_query(parsed_data)
+# Example of parsing, generating decoys, and creating the modified query
+def generate_insert_with_decoys(query: str, parsed_data, num_decoys=10):
+    # Generate decoys for each column based on the real values
+    decoy_results = generate_decoys_from_query(parsed_data, num_decoys)
 
-# Display generated decoys for each column
-for column, decoys in decoy_results.items():
-    print(f"Decoys for column '{column}': {decoys}")
+    # Prepare modified values with real values and decoys
+    modified_values = []
+    for column, real_value in zip(parsed_data["columns"], parsed_data["values"][0]):
+        # Get the generated decoys for this column
+        decoys = decoy_results.get(column, [])
+        # Concatenate the real value with its decoys
+        combined_value = concatenate_with_decoys(real_value, decoys)
+        modified_values.append(combined_value)
+
+    # Format the modified values back into an SQL insert statement
+    columns_str = ", ".join(parsed_data["columns"])
+    values_str = "', '".join(modified_values)
+    modified_query = (
+        f"INSERT INTO {parsed_data['table']} ({columns_str}) VALUES ('{values_str}');"
+    )
+
+    return modified_query
+
+
+# # Example usage
+# query = """
+# INSERT INTO users (name, age, job) VALUES ('Tim', '903-642-23', 'developer');
+# """
+
+# # Generate the modified INSERT query with decoys
+# modified_query = generate_insert_with_decoys(query)
+
+# # Display the modified query
+# print("Modified Query with Decoys:")
+# print(modified_query)
+
+# # # Example usage
+# # query = """
+# # INSERT INTO users (name, age, job)
+# # VALUES ('Alice', '544-3244', 'teacher')
+# # """
+
+# # # Parse the query
+# # parsed_data = query_parse(query)
+
+# # # Generate decoys based on the parsed data
+# # decoy_results = generate_decoys_from_query(parsed_data)
+
+# # # Display generated decoys for each column
+# # for column, decoys in decoy_results.items():
+# #     print(f"Decoys for column '{column}': {decoys}")

@@ -1,4 +1,5 @@
 import psycopg2
+import Nonaidecoy
 from psycopg2 import sql, OperationalError
 
 
@@ -12,6 +13,16 @@ def connect_to_database(host, port, user, password, db_name):
     except OperationalError as e:
         print(f"Error connecting to the database: {e}")
         return None
+
+
+def get_all_columns(table_name, cursor):
+    query = f"""
+    SELECT column_name, data_type, is_nullable
+    FROM information_schema.columns
+    WHERE table_name = '{table_name}';
+    """
+    cursor.execute(query)
+    return cursor.fetchall()
 
 
 # Function to create a new database
@@ -62,13 +73,24 @@ def user_sql_terminal(cursor, connection) -> bool:
     while run:
         try:
             # Prompt for SQL query input
-            user_query = input("Enter SQL query (or type 'exit' or '\\q' to quit): ")
+            user_query = input(
+                "Enter SQL query (type 'exit' or '\\q' to quit, tpye 'select all' to view a table): "
+            )
             if user_query.strip().lower() in ("exit", "\\q"):
                 cursor.close()
                 connection.close()
                 run = False
                 return False
 
+            elif user_query.strip().lower() in ("select all"):
+                table_name = input("Type your table name: ")
+                columns = get_all_columns(table_name, cursor)
+                print(f"Columns for table {table_name}:\n")
+                # need to fix
+                for column in columns:
+                    print(
+                        f"Column: {column[0]}, Type: {column[1]}, Nullable: {column[2]}"
+                    )
             # If the query is a SELECT statement
             elif user_query.strip().lower().startswith("select"):
                 cursor.execute(user_query)
@@ -78,6 +100,22 @@ def user_sql_terminal(cursor, connection) -> bool:
                         print(row)
                 else:
                     print("No data found.")
+
+            elif user_query.strip().upper().startswith("INSERT INTO"):
+                # If it's an insert statement, make the decoys
+                number_of_decoys = 10
+
+                # Parse the query to get table name, columns, and real values
+                parsed_data = Nonaidecoy.query_parse(user_query)
+
+                # Generate an insert statement with decoys
+                query_with_decoys = Nonaidecoy.generate_insert_with_decoys(
+                    user_query, parsed_data, number_of_decoys
+                )
+
+                # Execute the modified insert query
+                cursor.execute(query_with_decoys)
+                connection.commit()
 
             # For non-SELECT queries
             else:
