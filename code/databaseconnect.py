@@ -82,15 +82,16 @@ def user_sql_terminal(cursor, connection) -> bool:
                 run = False
                 return False
 
+            # gets metadata
             elif user_query.strip().lower() in ("select all"):
                 table_name = input("Type your table name: ")
                 columns = get_all_columns(table_name, cursor)
                 print(f"Columns for table {table_name}:\n")
-                # need to fix
+                print(f"{'Column':<20} {'Type':<20} {'Nullable':<10}")
+                print("-" * 50)
                 for column in columns:
-                    print(
-                        f"Column: {column[0]}, Type: {column[1]}, Nullable: {column[2]}"
-                    )
+                    print(f"{column[0]:<20} {column[1]:<20} {column[2]:<10}")
+
             # If the query is a SELECT statement
             elif user_query.strip().lower().startswith("select"):
                 cursor.execute(user_query)
@@ -103,7 +104,8 @@ def user_sql_terminal(cursor, connection) -> bool:
 
             elif user_query.strip().upper().startswith("INSERT INTO"):
                 # If it's an insert statement, make the decoys
-                number_of_decoys = 10
+                # IF SET TOO HIGH WILL CAUSE ERROR, NOT ENOUGH SPACE
+                number_of_decoys = 3
 
                 # Parse the query to get table name, columns, and real values
                 parsed_data = Nonaidecoy.query_parse(user_query)
