@@ -168,30 +168,3 @@ def generate_insert_with_decoys(query: str, parsed_data, num_decoys=10):
     return modified_query
 
 
-# # Example usage
-# query = """
-# INSERT INTO users (name, age, job) VALUES ('Tim', '903-642-23', 'developer');
-# """
-
-# # Generate the modified INSERT query with decoys
-# modified_query = generate_insert_with_decoys(query)
-
-# # Display the modified query
-# print("Modified Query with Decoys:")
-# print(modified_query)
-
-# # # Example usage
-# # query = """
-# # INSERT INTO users (name, age, job)
-# # VALUES ('Alice', '544-3244', 'teacher')
-# # """
-
-# # # Parse the query
-# # parsed_data = query_parse(query)
-
-# # # Generate decoys based on the parsed data
-# # decoy_results = generate_decoys_from_query(parsed_data)
-
-# # # Display generated decoys for each column
-# # for column, decoys in decoy_results.items():
-# #     print(f"Decoys for column '{column}': {decoys}")
