@@ -1,5 +1,5 @@
 import psycopg2
-import Nonaidecoy
+import QrypticDB.QrypticDB.deadcode.Nonaidecoy as Nonaidecoy
 from psycopg2 import sql, OperationalError
 
 
@@ -104,20 +104,23 @@ def user_sql_terminal(cursor, connection) -> bool:
 
             elif user_query.strip().upper().startswith("INSERT INTO"):
                 # If it's an insert statement, make the decoys
-                # IF SET TOO HIGH WILL CAUSE ERROR, NOT ENOUGH SPACE
-                number_of_decoys = 3
+                # IF SET TOO HIGH WILL CAUSE ERROR, NOT ENOUGH
+                try:
+                        
+                        except Exception as e:
+                            print(f"Error executing query: {e}")
+                            connection.rollback()
+                except ValueError as ve:
+                    print(f"ValueError: {ve}")
+                    connection.rollback()  # Rollback any changes if there's an error
 
-                # Parse the query to get table name, columns, and real values
-                parsed_data = Nonaidecoy.query_parse(user_query)
+                except TypeError as te:
+                    print(f"TypeError: {te}")
+                    connection.rollback()
 
-                # Generate an insert statement with decoys
-                query_with_decoys = Nonaidecoy.generate_insert_with_decoys(
-                    user_query, parsed_data, number_of_decoys
-                )
-
-                # Execute the modified insert query
-                cursor.execute(query_with_decoys)
-                connection.commit()
+                except Exception as e:
+                    print(f"Unexpected error: {e}")
+                    connection.rollback()
 
             # For non-SELECT queries
             else:
@@ -129,45 +132,70 @@ def user_sql_terminal(cursor, connection) -> bool:
             print(f"Error executing query: {e}")
 
 
-def main():
-    # Preset PostgreSQL credentials for testing
-    host = "localhost"
-    port = "5432"
-    user = "postgres"
-    password = "your_password"
-    target_db = "my_new_database23"
+def create_or_connectdb() -> tuple(str, str, str, str, str):
+    """Creates a db or connects to one"""
+    connect_to_db = input("Would you like to connect to an existing database? y/n: \n")
+    if connect_to_db.lower() == "y":
+        host_name = input("Please enter the host name: \n")
+        port_num = input("Please enter the port number: \n")
+        user = input("Please enter the user name: \n")
+        password = input("Please enter the password: \n")
+        database_name = input("Please enter the database name: \n")
+    else:
+        new_database = input("Would you like to make a new database? y/n: \n")
+        if new_database.lower() == "n":
+            print("goodbye")
 
+        else:
+            default_db = input("Would you like to use the default parameters? y/n?: \n")
+            if default_db.lower == "n":
+                host_name = input("Please enter the host name: \n")
+                port_num = input("Please enter the port number: \n")
+                user = input("Please enter the user name: \n")
+                password = input("Please enter the password: \n")
+                database_name = input("Please enter the new database name: \n")
+
+            else:
+                # Preset PostgreSQL credentials for testing
+                host_name = "localhost"
+                port_num = "5432"
+                user = "postgres"
+                password = "your_password"
+                database_name = "my_new_database"  # old was 23
+                print(
+                    f"Your host name is {host_name}, port is {port_num}, the user is {user}, your password is {password}, your database name is {database_name}  "
+                )
+
+    return (host_name, port_num, user, password, database_name)
+
+
+def main():
+    db_info = create_or_connectdb()
     test_true = True
     connection = None
     try:
         while test_true:
             # Connect to the target database
-            connection = connect_to_database(host, port, user, password, target_db)
+            connection = connect_to_database(db_info)
 
             if connection is None:
-                # If no connection, prompt to create a new database
-                print(f"Database '{target_db}' not found. Would you like to create it?")
-                user_ans = input("y/n? ")
-                if user_ans.lower() == "y":
-                    create_database(host, port, user, password, target_db)
-                else:
-                    print("The database was not created.")
-                    break  # Exit if user chooses not to create the database
+                print("Restart the program and check if you input the correct data")
+                break  # Exit if user chooses not to create the database
 
             if connection:
                 # Connection successful, proceed with database operations
                 cursor = connection.cursor()
 
-                # Create a sample table if one does not exist
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS public.test_table (
-                        id SERIAL PRIMARY KEY,
-                        name VARCHAR(100)
-                    );
-                """)
-                connection.commit()  # Ensure changes are saved
-                print("Table 'test_table' created successfully.")
-                print("You can now run SQL queries on this database.")
+                # # Create a sample table if one does not exist
+                # cursor.execute("""
+                #     CREATE TABLE IF NOT EXISTS public.test_table (
+                #         id SERIAL PRIMARY KEY,
+                #         name VARCHAR(100)
+                #     );
+                # """)
+                # connection.commit()  # Ensure changes are saved
+                # print("Table 'test_table' created successfully.")
+                # print("You can now run SQL queries on this database.")
 
                 # Start the user SQL terminal
                 stop = user_sql_terminal(cursor, connection)
