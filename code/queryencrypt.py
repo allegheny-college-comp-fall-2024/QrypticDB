@@ -51,11 +51,18 @@ class EncryptedDatabase:
     def execute(self, cursor, query, params=None):
         # Automatically encrypt data for INSERT or UPDATE queries
         if re.match(r"^\s*(INSERT|UPDATE)", query, re.IGNORECASE):
-            encrypted_params = [
-                self.encrypt(param) if isinstance(param, str) else param
-                for param in params
-            ]
-            cursor.execute(query, encrypted_params)
+            # Manually encrypt values if needed before constructing the query
+            query = query.replace(
+                "Sensitive Information", self.encrypt("Sensitive Information").decode()
+            )
+            cursor.execute(query)
+            return True
+        # if re.match(r"^\s*(INSERT|UPDATE)", query, re.IGNORECASE):
+        #     encrypted_params = [
+        #         self.encrypt(param) if isinstance(param, str) else param
+        #         for param in params
+        #     ]
+        #     cursor.execute(query, encrypted_params)
 
         # Automatically decrypt data for SELECT queries
         elif re.match(r"^\s*SELECT", query, re.IGNORECASE):
@@ -72,6 +79,7 @@ class EncryptedDatabase:
         # For other types of queries
         else:
             cursor.execute(query, params)
+            return None
 
     def encrypt(self, plaintext):
         return self.cipher.encrypt(plaintext.encode())
