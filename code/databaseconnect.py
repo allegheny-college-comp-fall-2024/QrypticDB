@@ -110,7 +110,7 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
             # If the query is an INSERT statement
             elif user_query.strip().upper().startswith("INSERT INTO"):
                 try:
-                    # Extract the values from the query using a regular expression
+                    # gets the values from the query using a regular expression
                     match = re.search(r"VALUES\s*\((.+)\)", user_query, re.IGNORECASE)
                     if match:
                         values_str = match.group(1)
@@ -218,10 +218,9 @@ def main():
 
             if connection is None:
                 print("Restart the program and check if you input the correct data")
-                break  # Exit if user chooses not to create the database
+                break
 
             if connection:
-                # Connection successful, proceed with database operations
                 cursor = connection.cursor()
 
                 encrypted_db = queryencrypt.EncryptedDatabase()
@@ -238,7 +237,3 @@ def main():
             cursor.close()
             connection.close()
             print("Database connection closed.")
-
-
-if __name__ == "__main__":
-    main()

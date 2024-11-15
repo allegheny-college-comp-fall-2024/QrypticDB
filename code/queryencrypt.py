@@ -63,6 +63,13 @@ class EncryptedDatabase:
             # print(query)
             cursor.execute(query, encrypted_params)
 
+    # Gpt explains the issue
+
+    # The issue with your decryption code arose because PostgreSQL stores binary data (bytea type) in a hex-encoded format (e.g., \\x674141...).
+    # When you queried the database, the encrypted data was returned as a hex string rather than raw bytes.
+    # Your decryption function was expecting raw byte data, so when it received a hex-encoded string instead, it couldn’t decrypt it.
+    # The solution involved checking if the data was hex-encoded (by looking for the \\x prefix) and converting it back to raw bytes using bytes.fromhex().
+    # This way, the decrypted data could be processed correctly, fixing the problem and allowing your code to return the actual decrypted values.
     def decrypt_execute(self, cursor, query):
         # Automatically decrypt data for SELECT queries
         if re.match(r"^\s*SELECT", query, re.IGNORECASE):
