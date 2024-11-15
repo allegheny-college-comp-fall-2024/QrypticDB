@@ -48,38 +48,45 @@ class EncryptedDatabase:
                 print("New encryption key generated and saved to file.")
         return key
 
-    def execute(self, cursor, query, params=None):
+    def execute(self, cursor, query, params):
         # Automatically encrypt data for INSERT or UPDATE queries
+        # if params is None:
+        #     params = []
         if re.match(r"^\s*(INSERT|UPDATE)", query, re.IGNORECASE):
-            # Manually encrypt values if needed before constructing the query
-            query = query.replace(
-                "Sensitive Information", self.encrypt("Sensitive Information").decode()
-            )
-            cursor.execute(query)
-            return True
-        # if re.match(r"^\s*(INSERT|UPDATE)", query, re.IGNORECASE):
-        #     encrypted_params = [
-        #         self.encrypt(param) if isinstance(param, str) else param
-        #         for param in params
-        #     ]
-        #     cursor.execute(query, encrypted_params)
+            # params: This is a list or tuple of values
+            encrypted_params = [
+                self.encrypt(param) if isinstance(param, str) else param
+                for param in params
+            ]
 
+            # print(encrypted_params)
+            # print(query)
+            cursor.execute(query, encrypted_params)
+
+    def decrypt_execute(self, cursor, query):
         # Automatically decrypt data for SELECT queries
-        elif re.match(r"^\s*SELECT", query, re.IGNORECASE):
-            cursor.execute(query, params)
+        if re.match(r"^\s*SELECT", query, re.IGNORECASE):
+            cursor.execute(query)
             rows = cursor.fetchall()
+            #     for i in rows:
+            #         if isinstance(i, bytes):
+            #             self.decrypt(i)
+            #     return rows
+
             decrypted_rows = [
                 tuple(
-                    self.decrypt(col) if isinstance(col, bytes) else col for col in row
+                    self.decrypt(bytes.fromhex(col[2:]))
+                    if isinstance(col, str) and col.startswith("\\x")
+                    else col
+                    for col in row
                 )
                 for row in rows
             ]
             return decrypted_rows
 
-        # For other types of queries
-        else:
-            cursor.execute(query, params)
-            return None
+    def normal_execute(self, cursor, query):
+        cursor.execute(query)
+        print("executed query {query}")
 
     def encrypt(self, plaintext):
         return self.cipher.encrypt(plaintext.encode())

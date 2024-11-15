@@ -3,6 +3,7 @@ import psycopg2
 # import QrypticDB.QrypticDB.deadcode.Nonaidecoy as Nonaidecoy
 from psycopg2 import sql, OperationalError
 import queryencrypt
+import re
 
 
 def connect_to_database(host, port, user, password, db_name):
@@ -96,28 +97,62 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
 
             # If the query is a SELECT statement
             elif user_query.strip().lower().startswith("select"):
-                results = encrypted_db.execute(cursor, user_query)
-                if results is not None:  # Check if results is not None
+                results = encrypted_db.decrypt_execute(cursor, user_query)
+                if results is not None:
                     for row in results:
                         print(row)
                 else:
-                    print("Query executed successfully, no rows returned.")
+                    print(
+                        "Query executed successfully, no rows returned or there is nothing in the table."
+                    )
 
+            # GPT to solve issue of not encrypting
             # If the query is an INSERT statement
             elif user_query.strip().upper().startswith("INSERT INTO"):
                 try:
-                    encrypted_db.execute(cursor, user_query)
-                    connection.commit()
-                    print("Data inserted successfully.")
+                    # Extract the values from the query using a regular expression
+                    match = re.search(r"VALUES\s*\((.+)\)", user_query, re.IGNORECASE)
+                    if match:
+                        values_str = match.group(1)
+                        # Split the values by commas and strip whitespace/quotes
+                        params = []
+                        for value in values_str.split(","):
+                            clean_value = value.strip().strip("'\"")
+
+                            # Check if the value is numeric (integer or float)
+                            if clean_value.isdigit():
+                                params.append(int(clean_value))  # Convert to integer
+                            else:
+                                try:
+                                    # Attempt to convert to a float
+                                    params.append(float(clean_value))
+                                except ValueError:
+                                    # Keep as a string if it's not a number
+                                    params.append(clean_value)
+
+                        # Replace the actual values with placeholders (%s)
+                        query_with_placeholders = re.sub(
+                            r"VALUES\s*\(.+\)", "VALUES (%s, %s, %s)", user_query
+                        )
+
+                        print("Original Params:", params)
+                        print("Modified Query:", query_with_placeholders)
+
+                        # Execute the query with placeholders and params
+                        encrypted_db.execute(cursor, query_with_placeholders, params)
+                        connection.commit()
+                        print("Data inserted successfully.")
+                    else:
+                        print("Could not extract values from the query.")
                 except Exception as e:
                     print(f"Error executing query: {e}")
                     connection.rollback()
 
-            # For other non-SELECT queries
-            else:
-                encrypted_db.execute(cursor, user_query)
-                connection.commit()
-                print("Query executed successfully.")
+                # For other non-SELECT queries
+                else:
+                    encrypted_db.normal_execute(cursor, user_query)
+                    connection.commit()
+                    print("Query executed successfully.")
         except ValueError as ve:
             print(f"ValueError: {ve}")
             connection.rollback()  # Rollback any changes if there's an error
