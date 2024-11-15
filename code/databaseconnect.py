@@ -1,6 +1,8 @@
 import psycopg2
-import QrypticDB.QrypticDB.deadcode.Nonaidecoy as Nonaidecoy
+
+# import QrypticDB.QrypticDB.deadcode.Nonaidecoy as Nonaidecoy
 from psycopg2 import sql, OperationalError
+import queryencrypt
 
 
 def connect_to_database(host, port, user, password, db_name):
@@ -68,7 +70,7 @@ def display_database(cursor):
         print("No tables in the current database.")
 
 
-def user_sql_terminal(cursor, connection) -> bool:
+def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
     run = True
     while run:
         try:
@@ -94,39 +96,39 @@ def user_sql_terminal(cursor, connection) -> bool:
 
             # If the query is a SELECT statement
             elif user_query.strip().lower().startswith("select"):
-                cursor.execute(user_query)
-                rows = cursor.fetchall()
-                if rows:
-                    for row in rows:
+                results = encrypted_db.execute(cursor, user_query)
+                if results:
+                    for row in results:
                         print(row)
                 else:
                     print("No data found.")
 
+            # If the query is an INSERT statement
             elif user_query.strip().upper().startswith("INSERT INTO"):
-                # If it's an insert statement, make the decoys
-                # IF SET TOO HIGH WILL CAUSE ERROR, NOT ENOUGH
                 try:
-                        
-                        except Exception as e:
-                            print(f"Error executing query: {e}")
-                            connection.rollback()
-                except ValueError as ve:
-                    print(f"ValueError: {ve}")
-                    connection.rollback()  # Rollback any changes if there's an error
-
-                except TypeError as te:
-                    print(f"TypeError: {te}")
-                    connection.rollback()
-
+                    encrypted_db.execute(cursor, user_query)
+                    connection.commit()
+                    print("Data inserted successfully.")
                 except Exception as e:
-                    print(f"Unexpected error: {e}")
+                    print(f"Error executing query: {e}")
                     connection.rollback()
 
-            # For non-SELECT queries
+            # For other non-SELECT queries
             else:
-                cursor.execute(user_query)
+                encrypted_db.execute(cursor, user_query)
                 connection.commit()
                 print("Query executed successfully.")
+        except ValueError as ve:
+            print(f"ValueError: {ve}")
+            connection.rollback()  # Rollback any changes if there's an error
+
+        except TypeError as te:
+            print(f"TypeError: {te}")
+            connection.rollback()
+
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            connection.rollback()
 
         except Exception as e:
             print(f"Error executing query: {e}")
@@ -186,19 +188,9 @@ def main():
                 # Connection successful, proceed with database operations
                 cursor = connection.cursor()
 
-                # # Create a sample table if one does not exist
-                # cursor.execute("""
-                #     CREATE TABLE IF NOT EXISTS public.test_table (
-                #         id SERIAL PRIMARY KEY,
-                #         name VARCHAR(100)
-                #     );
-                # """)
-                # connection.commit()  # Ensure changes are saved
-                # print("Table 'test_table' created successfully.")
-                # print("You can now run SQL queries on this database.")
-
+                encrypted_db = queryencrypt.EncryptedDatabase()
                 # Start the user SQL terminal
-                stop = user_sql_terminal(cursor, connection)
+                stop = user_sql_terminal(cursor, connection, encrypted_db)
                 if not stop:
                     break
 
