@@ -97,11 +97,11 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
             # If the query is a SELECT statement
             elif user_query.strip().lower().startswith("select"):
                 results = encrypted_db.execute(cursor, user_query)
-                if results:
+                if results is not None:  # Check if results is not None
                     for row in results:
                         print(row)
                 else:
-                    print("No data found.")
+                    print("Query executed successfully, no rows returned.")
 
             # If the query is an INSERT statement
             elif user_query.strip().upper().startswith("INSERT INTO"):
@@ -134,7 +134,7 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
             print(f"Error executing query: {e}")
 
 
-def create_or_connectdb() -> tuple(str, str, str, str, str):
+def create_or_connectdb() -> tuple:
     """Creates a db or connects to one"""
     connect_to_db = input("Would you like to connect to an existing database? y/n: \n")
     if connect_to_db.lower() == "y":
@@ -178,7 +178,8 @@ def main():
     try:
         while test_true:
             # Connect to the target database
-            connection = connect_to_database(db_info)
+            # The * unpacks the tuple
+            connection = connect_to_database(*db_info)
 
             if connection is None:
                 print("Restart the program and check if you input the correct data")
