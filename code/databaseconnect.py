@@ -237,3 +237,7 @@ def main():
             cursor.close()
             connection.close()
             print("Database connection closed.")
+
+
+if __name__ == "__main__":
+    main()
