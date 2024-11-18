@@ -209,7 +209,6 @@ def create_or_connectdb() -> tuple:
 def main():
     db_info = create_or_connectdb()
     test_true = True
-    connection = None
     try:
         while test_true:
             # Connect to the target database
