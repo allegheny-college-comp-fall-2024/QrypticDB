@@ -71,6 +71,9 @@ def display_database(cursor):
         print("No tables in the current database.")
 
 
+# SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
+
+
 def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
     run = True
     while run:
@@ -95,6 +98,34 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
                 for column in columns:
                     print(f"{column[0]:<20} {column[1]:<20} {column[2]:<10}")
 
+            # added stuff function. idk why it was not working berfor
+            elif user_query.strip().upper().startswith("CREATE TABLE"):
+                try:
+                    cursor.execute(user_query)
+                    connection.commit()  # Important: Commit the CREATE TABLE
+
+                    # Verify table creation
+                    table_name = re.search(
+                        r"CREATE TABLE\s+(\w+)", user_query, re.IGNORECASE
+                    )
+                    if table_name:
+                        verify_query = """
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_name = %s
+                        );
+                        """
+                        cursor.execute(verify_query, (table_name.group(1),))
+                        if cursor.fetchone()[0]:
+                            print(
+                                f"Table '{table_name.group(1)}' created successfully."
+                            )
+                        else:
+                            print(f"Failed to create table '{table_name.group(1)}'.")
+                except Exception as e:
+                    print(f"Error creating table: {e}")
+                    connection.rollback()
+
             # If the query is a SELECT statement
             elif user_query.strip().lower().startswith("select"):
                 results = encrypted_db.decrypt_execute(cursor, user_query)
@@ -110,7 +141,7 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
             # If the query is an INSERT statement
             elif user_query.strip().upper().startswith("INSERT INTO"):
                 try:
-                    # gets the values from the query using a regular expression
+                    # Extract values from the query
                     match = re.search(r"VALUES\s*\((.+)\)", user_query, re.IGNORECASE)
                     if match:
                         values_str = match.group(1)
@@ -119,20 +150,20 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
                         for value in values_str.split(","):
                             clean_value = value.strip().strip("'\"")
 
-                            # Check if the value is numeric (integer or float)
+                            # Check if the value is numeric
                             if clean_value.isdigit():
-                                params.append(int(clean_value))  # Convert to integer
+                                params.append(int(clean_value))
                             else:
                                 try:
-                                    # Attempt to convert to a float
                                     params.append(float(clean_value))
                                 except ValueError:
-                                    # Keep as a string if it's not a number
                                     params.append(clean_value)
 
-                        # Replace the actual values with placeholders (%s)
+                        # Create the correct number of placeholders based on params length
+                        placeholders = ", ".join(["%s"] * len(params))
+                        # Replace the actual values with the correct number of placeholders
                         query_with_placeholders = re.sub(
-                            r"VALUES\s*\(.+\)", "VALUES (%s, %s, %s)", user_query
+                            r"VALUES\s*\(.+\)", f"VALUES ({placeholders})", user_query
                         )
 
                         print("Original Params:", params)
@@ -149,10 +180,17 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
                     connection.rollback()
 
                 # For other non-SELECT queries
-                else:
-                    encrypted_db.normal_execute(cursor, user_query)
+                try:
+                    cursor.execute(user_query)
                     connection.commit()
                     print("Query executed successfully.")
+                except Exception as e:
+                    print(f"Error executing query: {e}")
+                    connection.rollback()
+
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            connection.rollback()
         except ValueError as ve:
             print(f"ValueError: {ve}")
             connection.rollback()  # Rollback any changes if there's an error
