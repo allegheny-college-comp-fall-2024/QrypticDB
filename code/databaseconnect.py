@@ -141,29 +141,45 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
             # If the query is an INSERT statement
             elif user_query.strip().upper().startswith("INSERT INTO"):
                 try:
-                    # Extract values from the query
-                    match = re.search(r"VALUES\s*\((.+)\)", user_query, re.IGNORECASE)
+                    # Extract values from the query (handling multiple tuples correctly)
+                    match = re.search(r"VALUES\s*(\(.+\))", user_query, re.IGNORECASE)
                     if match:
                         values_str = match.group(1)
-                        # Split the values by commas and strip whitespace/quotes
+
+                        # Extract tuples properly using regex
+                        value_tuples = re.findall(r"\(([^)]+)\)", values_str)
+
                         params = []
-                        for value in values_str.split(","):
-                            clean_value = value.strip().strip("'\"")
+                        for tuple_str in value_tuples:
+                            values = [
+                                v.strip().strip("'\"") for v in tuple_str.split(",")
+                            ]
 
-                            # Check if the value is numeric
-                            if clean_value.isdigit():
-                                params.append(int(clean_value))
-                            else:
-                                try:
-                                    params.append(float(clean_value))
-                                except ValueError:
-                                    params.append(clean_value)
+                            # Convert to appropriate types (int, float, or keep as string)
+                            for i, v in enumerate(values):
+                                if v.isdigit():
+                                    values[i] = int(v)
+                                else:
+                                    try:
+                                        values[i] = float(v)
+                                    except ValueError:
+                                        pass  # Keep as string
 
-                        # Create the correct number of placeholders based on params length
-                        placeholders = ", ".join(["%s"] * len(params))
-                        # Replace the actual values with the correct number of placeholders
+                            params.extend(values)  # Flatten into params list
+
+                        # Create the correct number of placeholders
+                        placeholders = ", ".join(
+                            [
+                                "("
+                                + ", ".join(["%s"] * len(value_tuples[0].split(",")))
+                                + ")"
+                            ]
+                            * len(value_tuples)
+                        )
+
+                        # Replace the VALUES section with placeholders
                         query_with_placeholders = re.sub(
-                            r"VALUES\s*\(.+\)", f"VALUES ({placeholders})", user_query
+                            r"VALUES\s*\(.+\)", f"VALUES {placeholders}", user_query
                         )
 
                         print("Original Params:", params)
@@ -208,38 +224,70 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
 
 
 def create_or_connectdb() -> tuple:
-    """Creates a db or connects to one"""
+    """Creates a database or connects to one."""
     connect_to_db = input("Would you like to connect to an existing database? y/n: \n")
+
     if connect_to_db.lower() == "y":
         host_name = input("Please enter the host name: \n")
         port_num = input("Please enter the port number: \n")
         user = input("Please enter the user name: \n")
         password = input("Please enter the password: \n")
         database_name = input("Please enter the database name: \n")
+
     else:
         new_database = input("Would you like to make a new database? y/n: \n")
         if new_database.lower() == "n":
-            print("goodbye")
+            print("Goodbye")
+            exit()
+
+        default_db = input("Would you like to use the default parameters? y/n?: \n")
+        if default_db.lower() == "y":
+            host_name = "localhost"
+            port_num = "5432"
+            user = "postgres"
+            password = "your_password"
+            database_name = "keyring"
 
         else:
-            default_db = input("Would you like to use the default parameters? y/n?: \n")
-            if default_db.lower == "n":
-                host_name = input("Please enter the host name: \n")
-                port_num = input("Please enter the port number: \n")
-                user = input("Please enter the user name: \n")
-                password = input("Please enter the password: \n")
-                database_name = input("Please enter the new database name: \n")
+            host_name = input("Please enter the host name: \n")
+            port_num = input("Please enter the port number: \n")
+            user = input("Please enter the user name: \n")
+            password = input("Please enter the password: \n")
+            database_name = input("Please enter the new database name: \n")
 
-            else:
-                # Preset PostgreSQL credentials for testing
-                host_name = "localhost"
-                port_num = "5432"
-                user = "postgres"
-                password = "your_password"
-                database_name = "my_new_database"  # old was 23
-                print(
-                    f"Your host name is {host_name}, port is {port_num}, the user is {user}, your password is {password}, your database name is {database_name}  "
-                )
+    # Try to connect to the target database
+    try:
+        connection = psycopg2.connect(
+            host=host_name,
+            port=port_num,
+            user=user,
+            password=password,
+            database=database_name,
+        )
+        print(f"Successfully connected to {database_name}.")
+        connection.close()
+
+    except psycopg2.OperationalError:
+        print(f"Database {database_name} does not exist. Creating it...")
+
+        # Connect to default 'postgres' database to create the new database
+        try:
+            conn = psycopg2.connect(
+                host=host_name,
+                port=port_num,
+                user=user,
+                password=password,
+                database="postgres",
+            )
+            conn.autocommit = True
+            cursor = conn.cursor()
+            cursor.execute(f"CREATE DATABASE {database_name};")
+            print(f"Database {database_name} created successfully.")
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"Failed to create database: {e}")
+            exit()
 
     return (host_name, port_num, user, password, database_name)
 
