@@ -13,12 +13,12 @@ class EncryptedDatabase:
         self.cipher = Fernet(self.key)
 
     # Future method will let the user chooes what file to write the key to. and have the option to change files if the wrong key is there
-    def key_file_check():
-        cwd = os.getcwd()
-        folder_name = "key_file"
-        folder_path = os.path.join(cwd, folder_name)
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+    # def key_file_check():
+    #     cwd = os.getcwd()
+    #     folder_name = "key_file"
+    #     folder_path = os.path.join(cwd, folder_name)
+    #     if not os.path.exists(folder_path):
+    #         os.makedirs(folder_path)
 
     # AS OF NOW THE PROGRAM CAN ONLY WORK WITH 1 DATABASE BECAUSE OF HOW THE KEY IS HANDLED
     # takes a path, returns a key
@@ -73,20 +73,56 @@ class EncryptedDatabase:
         except Exception as e:
             raise RuntimeError(f"Error accessing system keyring: {e}")
 
-    def execute(self, cursor, query, params):
-        # Automatically encrypt data for INSERT or UPDATE queries
-        # if params is None:
-        #     params = []
-        if re.match(r"^\s*(INSERT|UPDATE)", query, re.IGNORECASE):
-            # params: This is a list or tuple of values
-            encrypted_params = [
-                self.encrypt(param) if isinstance(param, str) else param
-                for param in params
-            ]
+    def encrypt(self, plaintext: str) -> str:
+        return self.cipher.encrypt(plaintext.encode()).decode()
 
-            # print(encrypted_params)
-            # print(query)
-            cursor.execute(query, encrypted_params)
+    def decrypt(self, ciphertext: str) -> str:
+        return self.cipher.decrypt(ciphertext.encode()).decode()
+
+    def encrypt_database(self, cursor):
+        cursor.execute(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
+        )
+        tables = cursor.fetchall()
+        for table in tables:
+            table_name = table[0]
+            cursor.execute(f"SELECT * FROM {table_name};")
+            rows = cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+
+            for row in rows:
+                encrypted_row = [
+                    self.encrypt(str(value)) if isinstance(value, str) else value
+                    for value in row
+                ]
+                set_clause = ", ".join([f"{col} = %s" for col in columns])
+                update_query = (
+                    f"UPDATE {table_name} SET {set_clause} WHERE {columns[0]} = %s;"
+                )
+                cursor.execute(update_query, encrypted_row + [row[0]])
+
+    def execute(self, cursor, query):
+        """Executes query"""
+        cursor.execute(query)
+
+    def close(self):
+        self.cursor.close()
+        self.connection.close()
+
+    # def execute(self, cursor, query, params):
+    #     # Automatically encrypt data for INSERT or UPDATE queries
+    # if params is None:
+    #     params = []
+
+    # # params: This is a list or tuple of values
+    # encrypted_params = [
+    #     self.encrypt(param) if isinstance(param, str) else param
+    #     for param in params
+    # ]
+
+    # # print(encrypted_params)
+    # # print(query)
+    # cursor.execute(query, encrypted_params)
 
     # Gpt explains the issue
 
@@ -95,48 +131,44 @@ class EncryptedDatabase:
     # Your decryption function was expecting raw byte data, so when it received a hex-encoded string instead, it couldn’t decrypt it.
     # The solution involved checking if the data was hex-encoded (by looking for the \\x prefix) and converting it back to raw bytes using bytes.fromhex().
     # This way, the decrypted data could be processed correctly, fixing the problem and allowing your code to return the actual decrypted values.
-    def decrypt_execute(self, cursor, query):
-        """Automatically decrypt data for SELECT queries"""
-        try:
-            if re.match(r"^\s*SELECT", query, re.IGNORECASE):
-                cursor.execute(query)
-                rows = cursor.fetchall()
+    # def decrypt_execute(self, cursor, query):
+    #     """Automatically decrypt data for SELECT queries"""
+    #     try:
+    #         if re.match(r"^\s*SELECT", query, re.IGNORECASE):
+    #             cursor.execute(query)
+    #             rows = cursor.fetchall()
 
-                if not rows:
-                    return []
+    #             if not rows:
+    #                 return []
 
-            decrypted_rows = []
-            for row in rows:
-                decrypted_values = []
-                for col in row:
-                    try:
-                        if isinstance(col, str) and col.startswith("\\x"):
-                            # Handle encrypted data
-                            decrypted_value = self.decrypt(bytes.fromhex(col[2:]))
-                            decrypted_values.append(decrypted_value)
-                        else:
-                            # Pass through non-encrypted data
-                            decrypted_values.append(col)
-                    except Exception as e:
-                        print(f"Error decrypting value {col}: {str(e)}")
-                        decrypted_values.append(col)
-                decrypted_rows.append(tuple(decrypted_values))
+    #         decrypted_rows = []
+    #         for row in rows:
+    #             decrypted_values = []
+    #             for col in row:
+    #                 try:
+    #                     if isinstance(col, str) and col.startswith("\\x"):
+    #                         # Handle encrypted data
+    #                         decrypted_value = self.decrypt(bytes.fromhex(col[2:]))
+    #                         decrypted_values.append(decrypted_value)
+    #                     else:
+    #                         # Pass through non-encrypted data
+    #                         decrypted_values.append(col)
+    #                 except Exception as e:
+    #                     print(f"Error decrypting value {col}: {str(e)}")
+    #                     decrypted_values.append(col)
+    #             decrypted_rows.append(tuple(decrypted_values))
 
-            return decrypted_rows
-        except Exception as e:
-            print(f"Error in decrypt_execute: {str(e)}")
-            raise
+    #         return decrypted_rows
+    #     except Exception as e:
+    #         print(f"Error in decrypt_execute: {str(e)}")
+    #         raise
 
-    def normal_execute(self, cursor, query):
-        cursor.execute(query)
-        print("executed query {query}")
+    # def normal_execute(self, cursor, query):
+    #     cursor.execute(query)
+    #     print("executed query {query}")
 
-    def encrypt(self, plaintext):
-        return self.cipher.encrypt(plaintext.encode())
+    # def encrypt(self, plaintext):
+    #     return self.cipher.encrypt(plaintext.encode())
 
-    def decrypt(self, ciphertext):
-        return self.cipher.decrypt(ciphertext).decode()
-
-    def close(self):
-        self.cursor.close()
-        self.connection.close()
+    # def decrypt(self, ciphertext):
+    #     return self.cipher.decrypt(ciphertext).decode()
