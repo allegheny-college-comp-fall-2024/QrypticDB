@@ -80,6 +80,44 @@ class EncryptedDatabase:
         return self.cipher.decrypt(ciphertext.encode()).decode()
 
     def encrypt_database(self, cursor):
+        # Step 1: Retrieve all table names in the public schema
+        cursor.execute(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
+        )
+        tables = cursor.fetchall()
+
+        # Step 2: Iterate over each table
+        for table in tables:
+            table_name = table[0]
+
+            # Step 3: Retrieve all rows from the current table
+            cursor.execute(f"SELECT * FROM {table_name};")
+            rows = cursor.fetchall()
+
+            # Step 4: Get the column names of the current table
+            columns = [desc[0] for desc in cursor.description]
+
+            # Step 5: Iterate over each row in the table
+            for row in rows:
+                # Step 6: Encrypt each string value in the row
+                encrypted_row = [
+                    self.encrypt(str(value)) if isinstance(value, str) else value
+                    for value in row
+                ]
+
+                # Step 7: Create the SET clause for the UPDATE statement
+                set_clause = ", ".join([f"{col} = %s" for col in columns])
+
+                # Step 8: Create the UPDATE query
+                update_query = (
+                    f"UPDATE {table_name} SET {set_clause} WHERE {columns[0]} = %s;"
+                )
+
+                # Step 9: Execute the UPDATE query with the encrypted values
+                cursor.execute(update_query, encrypted_row + [row[0]])
+
+    def decrypt_database(self, cursor):
+        """Decrypts the database"""
         cursor.execute(
             "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
         )
@@ -91,19 +129,35 @@ class EncryptedDatabase:
             columns = [desc[0] for desc in cursor.description]
 
             for row in rows:
-                encrypted_row = [
-                    self.encrypt(str(value)) if isinstance(value, str) else value
+                decrypted_row = [
+                    self.decrypt(value)
+                    if isinstance(value, str) and value.startswith("gAAAA")
+                    else value
                     for value in row
                 ]
                 set_clause = ", ".join([f"{col} = %s" for col in columns])
                 update_query = (
                     f"UPDATE {table_name} SET {set_clause} WHERE {columns[0]} = %s;"
                 )
-                cursor.execute(update_query, encrypted_row + [row[0]])
+                cursor.execute(update_query, decrypted_row + [row[0]])
 
     def execute(self, cursor, query):
         """Executes query"""
-        cursor.execute(query)
+        try:
+            # Execute the query
+            cursor.execute(query)
+
+            # Try to fetch results (for SELECT queries)
+            try:
+                results = cursor.fetchall()
+                return results
+            except psycopg2.ProgrammingError:
+                # This happens for non-SELECT queries (INSERT, UPDATE, DELETE)
+                return None
+
+        except Exception as e:
+            print(f"Error executing query: {e}")
+            raise
 
     def close(self):
         self.cursor.close()
