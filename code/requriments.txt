@@ -1,4 +1,4 @@
-psycopg2
-
 cryptography
-
+psycopg2
+keyring
+pycryptodome
