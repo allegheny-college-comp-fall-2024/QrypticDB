@@ -2,6 +2,7 @@ import psycopg2
 from psycopg2 import sql, OperationalError
 import queryencrypt
 import time
+import sys
 
 
 def connect_to_database(host, port, user, password, db_name):
@@ -24,7 +25,9 @@ def connect_to_database(host, port, user, password, db_name):
         return None, None, None
 
 
-def create_database(host, port, user, password, new_db_name):
+def create_database(
+    host: str, port: int, user: str, password: str, new_db_name: str
+) -> None:
     try:
         connection = psycopg2.connect(
             host=host,
@@ -83,6 +86,62 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
 
 
 # Long function for creating or connecting to a database
+# def create_or_connectdb() -> tuple:
+#     connect_to_db = input("Would you like to connect to an existing database? y/n: \n")
+#     if connect_to_db.lower() == "y":
+#         host_name = input("Please enter the host name: \n")
+#         port_num = input("Please enter the port number: \n")
+#         user = input("Please enter the user name: \n")
+#         password = input("Please enter the password: \n")
+#         database_name = input("Please enter the database name: \n")
+
+#     else:
+#         new_database = input("Would you like to make a new database? y/n: \n")
+#         if new_database.lower() == "n":
+#             print("Goodbye")
+#             return None, None
+#         default_db = input("Would you like to use the default parameters? y/n?: \n")
+#         if default_db.lower() == "n":
+#             host_name = input("Please enter the host name: \n")
+#             port_num = input("Please enter the port number: \n")
+#             user = input("Please enter the user name: \n")
+#             password = input("Please enter the password: \n")
+#             database_name = input("Please enter the new database name: \n")
+
+#         elif default_db.lower() == "y":
+#             host_name = "localhost"
+#             port_num = "5432"
+#             user = "postgres"
+#             password = "your_password"
+#             database_name = "mynewdatabase57"
+
+#         else:
+#             print("Please enter a valid response")
+
+#         print(
+#             f"Your host name is {host_name}, port is {port_num}, the user is {user}, your password is {password}, your database name is {database_name}"
+#         )
+#         # If for some reason the above default database does not work, it will try
+#         try:
+#             connection = psycopg2.connect(
+#                 host=host_name,
+#                 port=port_num,
+#                 user=user,
+#                 password=password,
+#                 database="postgres",
+#             )
+#             connection.autocommit = True
+#             cursor = connection.cursor()
+#             cursor.execute(sql.SQL(f"CREATE DATABASE {database_name}"))
+#             print(f"Database '{database_name}' created successfully.")
+#             cursor.close()
+#             connection.close()
+#         except OperationalError as e:
+#             print(f"Error while creating database: {e}")
+#             return None, None, None, None, None
+#     return (host_name, port_num, user, password, database_name)
+
+
 def create_or_connectdb() -> tuple:
     connect_to_db = input("Would you like to connect to an existing database? y/n: \n")
     if connect_to_db.lower() == "y":
@@ -105,34 +164,28 @@ def create_or_connectdb() -> tuple:
             password = input("Please enter the password: \n")
             database_name = input("Please enter the new database name: \n")
 
-        else:
+        elif default_db.lower() == "y":
             host_name = "localhost"
             port_num = "5432"
             user = "postgres"
             password = "your_password"
             database_name = "mynewdatabase57"
 
+        else:
+            print("Please enter a valid response")
+
         print(
             f"Your host name is {host_name}, port is {port_num}, the user is {user}, your password is {password}, your database name is {database_name}"
         )
-        # If for some reason the above default database does not work, it will try
+
+        # Create the database using the dedicated function
         try:
-            connection = psycopg2.connect(
-                host=host_name,
-                port=port_num,
-                user=user,
-                password=password,
-                database="postgres",
-            )
-            connection.autocommit = True
-            cursor = connection.cursor()
-            cursor.execute(sql.SQL(f"CREATE DATABASE {database_name}"))
-            print(f"Database '{database_name}' created successfully.")
-            cursor.close()
-            connection.close()
-        except OperationalError as e:
+            create_database(host_name, port_num, user, password, database_name)
+        except Exception as e:
             print(f"Error while creating database: {e}")
-            return None, None, None, None, None
+            print("That database already exists. Please try again.")
+            # sys.exit()
+
     return (host_name, port_num, user, password, database_name)
 
 
@@ -168,6 +221,7 @@ def main():
             connection.close()
             print("Database connection closed.")
     finally:
+        # just makes sure the database is properly encrypted and closed
         if connection:
             if cursor and encrypted_db:
                 encrypted_db.encrypt_database(cursor)
