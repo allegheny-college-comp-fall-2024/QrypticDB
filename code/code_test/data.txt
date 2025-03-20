@@ -1,0 +1,265 @@
+
+This data is queries randomly being inserted into different databses
+
+Experiment Num, Run(int), double size, decrypt time, # of lines, encrypt time, # of lines
+
+
+experiment,run,double_size,operation,time,num_lines
+
+Experiment1: One huge database
+
+Run 1
+decrpyt mean = (1 + 1 + 2 + 8 +7 )/ 6 = 3.1
+encrypt mean = (1 + 2 + 8 + 9 + 11) / 5 = 6.2
+
+
+Run 1:
+
+double 1
+
+decrpyt time:  0.6131084080107852,  0
+encrypt time:  0.860619068145752,  1250
+
+
+double 2
+decrpyt time: 1.071138858795166, 1250
+encrypt time: 1.956617832183838, 2500
+
+double 3
+decrpyt time: 1.9566969871520996, 2500
+encrypt time: 8.232919931411743,  5000
+
+double 4
+decrypt time: 7.601308107376099,  5000
+encrypt time: 8.891570568084717 , 10000
+
+
+double 5
+decrpyt time: 6.961286306381226, 10000
+encrypt time: 11.122905492782593, 20000
+
+decrpyt time: 10.593862056732178, 20000
+
+
+Run 2
+decrpyt mean = 1 + 2 + 2 + 5 + 10 + 20 /6 = 6.666666666666667
+encrypt mean = 1 + 3 + 5 + 10 + 20 / 5 = 7.8
+
+
+Run 2
+double 1
+decrypt time: 0.9234085083007812, 0
+encrypt time: 1.3829894065856934, 1250
+
+double 2
+decrpyt time: 1.7409698963165283, 1250
+encrypt time: 2.8578834533691406, 2500
+
+double 3
+decrpyt time: 2.362213373184204, 2500
+encrypt time: 5.312271595001221, 5000
+
+double 4
+decrypt time: 4.7524614334106445, 5000
+encrypt time: 10.09763479232788, 10000
+
+double 5
+
+decrypt time: 10.317848205566406, 10000
+encrypt time: 19.770703077316284, 20000
+
+decrypt time: 20.212164640426636, 20000
+
+
+run 3
+
+
+decrpyt mean = 2 + 2 + 3 + 5 + 11 + 21 / 6 = 8.666666666666666
+encrypt mean = 2 + 2 + 4 + 10 + 18 + 11 / 5 = 9.0
+
+
+double 1
+
+decrypt time: 1.6572914123535156, 0
+encrypt time: 1.686267614364624, 1250
+
+double 2
+
+decrypt time: 1.7729642391204834, 1250
+encrypt time: 2.31913161277771, 2500
+
+double3
+
+decrypt time: 2.5956485271453857, 2500
+encrypt time: 4.31554102897644, 5000
+
+double 4
+
+decrpyt time: 4.560228586196899, 5000
+encrypt time: 10.304205417633057, 10000
+
+double 5
+
+decrypt time: 10.788241386413574, 10000
+encrypt time: 18.134602308273315, 20000
+
+decrpyt time: 20.746305812273315, 20000
+
+
+Run 4
+
+decrpyt mean = (0.3021965026855469 + 1.8304388523101807 + 2.3609158992767334 + 4.980567216873169 + 11.0064218044281) / 6 = 4.474674830445366
+decrpyt mean = 0.3 + 2 + 2 + 5 + 11 + 13 / 6 = 5.55
+encrypt mean = 1 + 2 + 5 + 11 + 20 / 5 = 7.8
+
+double 1
+
+decrpyt time: 0.3021965026855469, 0
+encrypt time: 1.1212520599365234, 1250
+
+double 2
+
+decrpyt time: 1.8304388523101807, 1250
+encrypt time: 2.476203203201294, 2500
+
+
+double 3
+
+decrpyt time: 2.3609158992767334, 2500
+encrypt time: 4.916810512542725, 5000
+
+double 4
+
+decrpyt time: 4.980567216873169, 5000
+encrypt time: 11.22853422164917, 10000
+
+double 5
+
+decrypt time: 11.0064218044281, 10000
+encrypt time: 19.62694478034973, 20000
+
+decrpyt time: 13.2049576084379
+
+
+
+Experiment2: 3 databases
+run 1
+
+double 1 
+
+decrpyt time: 0.02702808380126953, 0
+encrypt time: 1.1503937244415283, 1250
+
+double 2
+
+decrypt time: 5.621614217758179, 1250
+encrypt time: 4.797224998474121, 2500
+
+double 3
+
+decrpyt time: 5.514828681945801, 2500
+encrypt time: 10.602505922317505, 5000
+
+double 4
+
+decrypt time: 11.467458009719849, 5000
+encrypt time: 19.390438556671143, 10000
+
+double 5
+
+decrypt time: 11.467458009719849, 10000
+encrypt time: 19.390438556671143, 20000
+
+decrypt time: 18.120752334594727, 20000
+
+
+
+run 2
+
+double 1
+
+decrpyt time: 0.023464679718017578, 0
+encrypt time: 2.3210628032684326, 1250
+
+double 2
+
+decrypt time: 2.784766674041748, 1250
+encrypt time: 5.795908689498901, 2500
+
+double 3
+
+decrpyt time: 4.570338010787964, 2500
+encrypt time: 11.038191556930542, 5000
+
+double 4
+
+decrpyt time: 11.154820680618286, 5000
+encrypt time: 17.548049926757812, 10000
+
+double 5 
+
+decrypt time: 19.44980502128601, 10000
+encrypt time: 20.036214590072632, 20000
+
+decrypt time:  19.28198218345642, 20000
+
+
+run 3
+
+double 1
+
+decrpyt time: 0.0156557559967041, 0
+encrypt time: 3.1648969650268555, 1250
+
+double 2
+
+decrpyt time: 2.585792303085327, 1250
+encrypt time: 5.22751522064209, 2500
+
+double 3
+
+decrpyt time: 5.64877986907959, 2500
+encrypt time: 11.413992643356323, 5000
+
+double 4
+
+decrpyt time: 10.957314014434814, 5000
+encrypt time: 18.74458384513855, 10000
+
+double 5
+
+decrpyt time: 19.052841186523438, 10000
+encrypt time: 29.322540521621704, 20000
+
+decrpyt time: 29.942119598388672, 20000
+
+
+
+run 4
+
+double 1
+
+decrpyt time: 0.017967700958251953, 0
+encrypt time: 2.5537641048431396, 1250
+
+double 2
+
+decrpyt time: 2.5728797912597656, 1250
+encrypt time: 5.065365314483643, 2500
+
+double 3
+
+decrpyt time: 5.150737762451172, 2500
+encrypt time: 12.423815965652466, 5000
+
+double 4
+
+decrpyt time: 10.932586431503296, 5000
+encrypt time: 19.046037912368774, 10000
+
+double 5
+
+decrpyt time: 19.515601873397827, 10000
+encrypt time: 27.177483797073364, 20000
+
+decrpyt time: 28.707873821258545, 20000
