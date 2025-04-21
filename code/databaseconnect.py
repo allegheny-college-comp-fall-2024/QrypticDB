@@ -5,6 +5,50 @@ import time
 import sys
 
 
+# is set to public becuase i don't think most people will change it
+def print_database_schema(cursor, schema="public"):
+    # Get all tables in the schema
+    cursor.execute(
+        """
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = %s;
+    """,
+        (schema,),
+    )
+    tables = cursor.fetchall()
+
+    for table in tables:
+        table_name = table[0]
+        print(f"\nTable: {table_name}")
+        cursor.execute(
+            """
+            SELECT column_name, data_type
+            FROM information_schema.columns
+            WHERE table_schema = %s AND table_name = %s;
+        """,
+            (schema, table_name),
+        )
+        columns = cursor.fetchall()
+
+        for col in columns:
+            print(f"  {col[0]} ({col[1]})")
+
+
+def list_databases(cursor):
+    try:
+        # datistemplate = false filters out template databases (template0, template1) that PostgreSQL uses internally when creating new databases
+        cursor.execute("SELECT datname FROM pg_database WHERE datistemplate = false;")
+        dbs = cursor.fetchall()
+        print("Available Databases:")
+        for db in dbs:
+            print(f" - {db[0]}")
+    except Exception as e:
+        print(f"Error listing databases: {e}")
+
+
+# SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
+# have this implemented so suer can see tables
 def connect_to_database(host, port, user, password, db_name):
     try:
         connection = psycopg2.connect(
@@ -61,6 +105,14 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
                 connection.close()
                 return False
 
+            # made raw so python knows its on purpose
+            # elif user_query.strip().lower() == "dn":
+            #     print_database_schema(cursor, schema="public")
+
+            # # made raw so python knows its on purpose
+            # elif user_query.strip().lower() == "l":
+            #     list_databases(cursor)
+
             # Execute the query
             try:
                 results = encrypted_db.execute(cursor, user_query)
@@ -81,7 +133,7 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
                     connection.rollback()
 
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"The Error: {e}")
             connection.rollback()
 
 
@@ -143,6 +195,7 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
 
 
 def create_or_connectdb() -> tuple:
+    # Will either create a db or get db connection info
     connect_to_db = input("Would you like to connect to an existing database? y/n: \n")
     if connect_to_db.lower() == "y":
         host_name = input("Please enter the host name: \n")
@@ -156,6 +209,8 @@ def create_or_connectdb() -> tuple:
         if new_database.lower() == "n":
             print("Goodbye")
             return None, None
+        # should check if there defualt already exists, if so, then it will not create a new one.
+        # It will ask show all the databases using hte \l or SELECT datname FROM pg_database;
         default_db = input("Would you like to use the default parameters? y/n?: \n")
         if default_db.lower() == "n":
             host_name = input("Please enter the host name: \n")
@@ -184,7 +239,7 @@ def create_or_connectdb() -> tuple:
         except Exception as e:
             print(f"Error while creating database: {e}")
             print("That database already exists. Please try again.")
-            # sys.exit()
+            sys.exit()
 
     return (host_name, port_num, user, password, database_name)
 
@@ -203,6 +258,7 @@ def main():
 
     try:
         while test_true:
+            # Connects to db by unpacking info from db_info
             connection, cursor, encrypted_db = connect_to_database(*db_info)
             if connection is None:
                 print("Restart the program and check if you input the correct data")

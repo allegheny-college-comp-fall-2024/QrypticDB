@@ -68,6 +68,11 @@ class EncryptedDatabase:
                     for value in row
                 ]
 
+                # encrypted_row = []
+                # for value in rows:
+                #         encrypted_value = self.encrypt(value)
+                #         encrypted_row.append(encrypted_value)
+
                 # Step 7: Create the SET clause for the UPDATE statement
                 set_clause = ", ".join([f"{col} = %s" for col in columns])
 

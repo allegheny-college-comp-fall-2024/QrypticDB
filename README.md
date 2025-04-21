@@ -14,7 +14,9 @@ This is a personalized encrypted database. It uses encryption to protect the use
 
 # Requirements
 
-In order to run this program, you will need to have PostgreSQL on your computer. Here is a link to the official PostgreSQL download: PostgreSQL Download.
+In order to run this program, you will need to have PostgreSQL on your computer. Here is a link to the official PostgreSQL download: PostgreSQL Download. Please make the database columns varchar. Doing this will garuntee that the data is encrypted.
+
+```sql
 
 I also recommend creating a virtual environment. You can install all the required packages by entering the command:
 
@@ -23,3 +25,4 @@ I also recommend creating a virtual environment. You can install all the require
 Or
 
 `pip install cryptography psycopg2 keyring`
+```
