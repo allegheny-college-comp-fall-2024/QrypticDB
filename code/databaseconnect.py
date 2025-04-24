@@ -105,13 +105,17 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
                 connection.close()
                 return False
 
-            # made raw so python knows its on purpose
-            # elif user_query.strip().lower() == "dn":
-            #     print_database_schema(cursor, schema="public")
+            elif user_query.strip().lower() == "dn":
+                try:
+                    print_database_schema(cursor, schema="public")
+                except Exception as e:
+                    print(f"Error in 'dn' command: {e}")
 
-            # # made raw so python knows its on purpose
-            # elif user_query.strip().lower() == "l":
-            #     list_databases(cursor)
+            elif user_query.strip().lower() == "l":
+                try:
+                    list_databases(cursor)
+                except Exception as e:
+                    print(f"Error in 'l' command: {e}")
 
             # Execute the query
             try:
@@ -125,12 +129,12 @@ def user_sql_terminal(cursor, connection, encrypted_db) -> bool:
                     print("Query executed successfully.")
 
             except psycopg2.ProgrammingError as e:
-                if "no results to fetch" in str(e):
-                    connection.commit()
-                    print("Query executed successfully.")
-                else:
-                    print(f"Error executing query: {e}")
-                    connection.rollback()
+                # if "no results to fetch" in str(e):
+                #     connection.commit()
+                #     print("Query executed successfully.")
+                # else:
+                print(f"Error executing query: {e}")
+                connection.rollback()
 
         except Exception as e:
             print(f"The Error: {e}")
@@ -224,7 +228,7 @@ def create_or_connectdb() -> tuple:
             port_num = "5432"
             user = "postgres"
             password = "your_password"
-            database_name = "mynewdatabase57"
+            database_name = "mynewdatabase70"
 
         else:
             print("Please enter a valid response")
