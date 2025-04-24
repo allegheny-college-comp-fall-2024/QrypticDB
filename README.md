@@ -26,3 +26,7 @@ Or
 
 `pip install cryptography psycopg2 keyring`
 ```
+
+To view the list of database, enter "l" (as of now there is a bug, it should show the list of databases, does but it also shows the error message, I will fix this in the future).
+
+To view the database schema, enter "dn" (as of now there is a bug, it should show the list of databases, does but it also shows the error message, I will fix this in the future).
